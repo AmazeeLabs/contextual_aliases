@@ -58,6 +58,12 @@ trait ContextualPathFormTrait {
         $form_state->setErrorByName('alias', t('The alias %alias is already in use in this language.', ['%alias' => $alias]));
       }
     }
+    elseif ($this->aliasStorage->aliasExists($alias, $langcode, NULL, $form_state->getValue('context'))) {
+      $stored_alias = $this->aliasStorage->load(['alias' => $alias, 'langcode' => $langcode, 'context' => $form_state->getValue('context')]);
+      if ($stored_alias['pid'] !== $form_state->getValue('pid')) {
+        $form_state->setErrorByName('alias', t('The alias %alias is already in use in this workspace.', ['%alias' => $alias]));
+      }
+    }
 
     if (!$this->pathValidator->isValid(trim($source, '/'))) {
       $form_state->setErrorByName('source', t("Either the path '@link_path' is invalid or you do not have access to it.", ['@link_path' => $source]));
