@@ -1,8 +1,11 @@
 <?php
 
+use Drupal\Core\Entity\EntityTypeInterface;
+use Drupal\Core\Field\BaseFieldDefinition;
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\contextual_aliases\Entity\ContextualRedirect;
 use Drupal\contextual_aliases\Form\ContextualRedirectForm;
-use Drupal\Core\Form\FormStateInterface;
 use Drupal\redirect\Plugin\Field\FieldWidget\RedirectSourceWidget;
 
 /**
@@ -33,4 +36,55 @@ function contextual_aliases_field_widget_form_alter(&$element, FormStateInterfac
     // results in false positives.
     unset($element['path']['#ajax']);
   }
+}
+
+/*
+  $spec = array(
+    'description' => "The context for this alias..",
+    'type' => 'varchar_ascii',
+    'length' => 32,
+    'not null' => FALSE,
+  );
+  $schema = Database::getConnection()->schema();
+  $schema->addField('path_alias', 'context', $spec);
+
+  $table = \Drupal\Core\Path\AliasStorage::schemaDefinition();
+  $table['fields']['context'] = $spec;
+
+  $schema->dropIndex('path_alias', 'alias_langcode_pid');
+  $schema->dropIndex('path_alias', 'source_langcode_pid');
+
+  $schema->addIndex('path_alias', 'alias_context_langcode_pid', [
+    'alias', 'context', 'langcode', 'pid',
+  ], $table);
+
+  $schema->addIndex('path_alias', 'source_context_langcode_pid', [
+    'source', 'context', 'langcode', 'pid',
+  ], $table);
+  */
+
+
+/**
+ * Implements hook_entity_base_field_info().
+ *
+ * @param \Drupal\Core\Entity\EntityTypeInterface $entity_type
+ */
+function contextual_aliases_entity_base_field_info(EntityTypeInterface $entity_type) {
+  $fields = [];
+  if ($entity_type->id() === 'path_alias') {
+    $fields['context'] = BaseFieldDefinition::create('string')
+      ->setLabel(new TranslatableMarkup('Path Alias context'))
+      ->setDescription(new TranslatableMarkup('Context'))
+      ->setTranslatable(TRUE)
+      ->setDefaultValue('')
+      ->setSetting('max_length', 255)
+      ->setDisplayOptions('form', [
+        'type' => 'string_textfield',
+        'weight' => 3,
+      ])
+      ->setDisplayConfigurable('form', TRUE)
+      ->setDisplayConfigurable('view', TRUE)
+      ->setTranslatable(TRUE);
+  }
+  return $fields;
 }

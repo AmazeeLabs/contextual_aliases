@@ -2,8 +2,8 @@
 
 namespace Drupal\contextual_aliases\Form;
 
-use Drupal\path\Form\AddForm as PathAddForm;
+//use Drupal\path\Form\AddForm as PathAddForm;
 
-class ContextualAddForm extends PathAddForm {
+class ContextualAddForm {
   use ContextualPathFormTrait;
 }
