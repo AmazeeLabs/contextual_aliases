@@ -7,7 +7,7 @@ use Drupal\Core\Url;
 use Drupal\path\Controller\PathController;
 use Symfony\Component\HttpFoundation\Request;
 
-class ContextualPathController extends PathController {
+class ContextualPathController {
 
   public function adminOverview(Request $request) {
     $keys = $request->query->get('search');
