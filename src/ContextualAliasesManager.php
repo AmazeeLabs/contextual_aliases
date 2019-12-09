@@ -173,4 +173,5 @@ class ContextualAliasesManager extends AliasManager {
     $this->noAlias[$langcode][$path] = TRUE;
     return $path;
   }
+
 }

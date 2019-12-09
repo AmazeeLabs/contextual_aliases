@@ -25,13 +25,6 @@ class ContextualAliasesServiceProvider extends ServiceProviderBase {
         'call' => 'addContextResolver',
       ]);
 
-    /*$container->getDefinition('path.alias_storage')
-      ->setClass(ContextualAliasStorage::class)
-      ->addTag('service_collector', [
-        'tag' => 'alias_context_resolver',
-        'call' => 'addContextResolver',
-      ]);*/
-
     if ($container->has('pathauto.alias_uniquifier')) {
       $container->getDefinition('pathauto.alias_uniquifier')
         ->setClass(ContextualAliasUniquifier::class)

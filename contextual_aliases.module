@@ -4,6 +4,7 @@ use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
+use Drupal\contextual_aliases\ContextualPathAliasListBuilder;
 use Drupal\contextual_aliases\Entity\ContextualRedirect;
 use Drupal\contextual_aliases\Form\ContextualRedirectForm;
 use Drupal\redirect\Plugin\Field\FieldWidget\RedirectSourceWidget;
@@ -17,6 +18,17 @@ function contextual_aliases_entity_type_alter(array &$entity_types) {
     $entity_types['redirect']->setClass(ContextualRedirect::class);
     $entity_types['redirect']->setFormClass('default', ContextualRedirectForm::class);
     $entity_types['redirect']->setFormClass('edit', ContextualRedirectForm::class);
+  }
+  if (isset($entity_types['path_alias'])) {
+    $entity_types['path_alias']->setListBuilderClass(ContextualPathAliasListBuilder::class);
+  }
+}
+
+function contextual_aliases_module_implements_alter(&$implementations, $hook) {
+  if ($hook == 'entity_type_alter') {
+    $group = $implementations['contextual_aliases'];
+    unset($implementations['contextual_aliases']);
+    $implementations['contextual_aliases'] = $group;
   }
 }
 
@@ -37,32 +49,6 @@ function contextual_aliases_field_widget_form_alter(&$element, FormStateInterfac
     unset($element['path']['#ajax']);
   }
 }
-
-/*
-  $spec = array(
-    'description' => "The context for this alias..",
-    'type' => 'varchar_ascii',
-    'length' => 32,
-    'not null' => FALSE,
-  );
-  $schema = Database::getConnection()->schema();
-  $schema->addField('path_alias', 'context', $spec);
-
-  $table = \Drupal\Core\Path\AliasStorage::schemaDefinition();
-  $table['fields']['context'] = $spec;
-
-  $schema->dropIndex('path_alias', 'alias_langcode_pid');
-  $schema->dropIndex('path_alias', 'source_langcode_pid');
-
-  $schema->addIndex('path_alias', 'alias_context_langcode_pid', [
-    'alias', 'context', 'langcode', 'pid',
-  ], $table);
-
-  $schema->addIndex('path_alias', 'source_context_langcode_pid', [
-    'source', 'context', 'langcode', 'pid',
-  ], $table);
-  */
-
 
 /**
  * Implements hook_entity_base_field_info().
