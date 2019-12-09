@@ -21,6 +21,10 @@ function contextual_aliases_entity_type_alter(array &$entity_types) {
   }
   if (isset($entity_types['path_alias'])) {
     $entity_types['path_alias']->setListBuilderClass(ContextualPathAliasListBuilder::class);
+    $constraints = $entity_types['path_alias']->getConstraints();
+    unset($constraints['UniquePathAlias']);
+    $entity_types['path_alias']->setConstraints($constraints);
+    $entity_types['path_alias']->addConstraint('ContextualUniquePathAlias', []);
   }
 }
 
@@ -36,7 +40,7 @@ function contextual_aliases_module_implements_alter(&$implementations, $hook) {
  * Collect all context options for displaying a select box.
  */
 function contextual_aliases_context_options() {
-  return \Drupal::service('path.alias_storage')->getContextOptions();
+  return \Drupal::service('path_alias.manager')->getContextOptions();
 }
 
 /**
@@ -58,15 +62,14 @@ function contextual_aliases_field_widget_form_alter(&$element, FormStateInterfac
 function contextual_aliases_entity_base_field_info(EntityTypeInterface $entity_type) {
   $fields = [];
   if ($entity_type->id() === 'path_alias') {
-    $fields['context'] = BaseFieldDefinition::create('string')
+    $fields['context'] = BaseFieldDefinition::create('list_string')
       ->setLabel(new TranslatableMarkup('Path Alias context'))
-      ->setDescription(new TranslatableMarkup('Context'))
       ->setTranslatable(TRUE)
       ->setDefaultValue('')
-      ->setSetting('max_length', 255)
+      ->setSetting('allowed_values_function', 'contextual_aliases_context_options')
       ->setDisplayOptions('form', [
-        'type' => 'string_textfield',
-        'weight' => 3,
+        'type' => 'options_select',
+        'weight' => 10,
       ])
       ->setDisplayConfigurable('form', TRUE)
       ->setDisplayConfigurable('view', TRUE)
