@@ -4,12 +4,21 @@ namespace Drupal\contextual_aliases;
 
 use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\Core\DependencyInjection\ServiceProviderBase;
+use Drupal\contextual_aliases\Compiler\ContextualAliasesPass;
+use Drupal\contextual_aliases\ContextualAliasesRepository;
 use Symfony\Component\DependencyInjection\Reference;
 
 /**
  * Service provider that replaces the default alias storage.
  */
 class ContextualAliasesServiceProvider extends ServiceProviderBase {
+
+  /**
+   * {@inheritdoc}
+   */
+  public function register(ContainerBuilder $container) {
+    $container->addCompilerPass(new ContextualAliasesPass());
+  }
 
   /**
    * {@inheritdoc}
