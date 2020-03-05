@@ -4,6 +4,8 @@ namespace Drupal\contextual_aliases;
 
 use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\Core\DependencyInjection\ServiceProviderBase;
+use Drupal\contextual_aliases\Compiler\ContextualAliasesPass;
+use Drupal\contextual_aliases\ContextualAliasesRepository;
 use Symfony\Component\DependencyInjection\Reference;
 
 /**
@@ -14,9 +16,19 @@ class ContextualAliasesServiceProvider extends ServiceProviderBase {
   /**
    * {@inheritdoc}
    */
+  public function register(ContainerBuilder $container) {
+    $container->addCompilerPass(new ContextualAliasesPass());
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function alter(ContainerBuilder $container) {
-    $container->getDefinition('path.alias_storage')
-      ->setClass(ContextualAliasStorage::class)
+    $container->getDefinition('path_alias.repository')
+      ->setClass(ContextualAliasesRepository::class);
+
+    $container->getDefinition('path_alias.manager')
+      ->setClass(ContextualAliasesManager::class)
       ->addTag('service_collector', [
         'tag' => 'alias_context_resolver',
         'call' => 'addContextResolver',

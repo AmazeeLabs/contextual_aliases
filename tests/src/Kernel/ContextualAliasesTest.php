@@ -2,11 +2,13 @@
 
 namespace Drupal\Tests\contextual_aliases\Kernel;
 
-use Drupal\contextual_aliases\AliasContextResolverInterface;
-use Drupal\contextual_aliases\ContextualAliasStorage;
 use Drupal\Core\DependencyInjection\ContainerBuilder;
+use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Path\AliasWhitelistInterface;
 use Drupal\KernelTests\KernelTestBase;
+use Drupal\contextual_aliases\AliasContextResolverInterface;
+use Drupal\contextual_aliases\ContextualAliasStorage;
+use Drupal\contextual_aliases\ContextualAliasesManager;
 use Prophecy\Argument;
 use Symfony\Component\DependencyInjection\Definition;
 
@@ -75,6 +77,20 @@ class ContextualAliasesTest extends KernelTestBase {
     return $this->resolverInstance;
   }
 
+  protected function createPathAlias($path, $alias, $langcode = LanguageInterface::LANGCODE_NOT_SPECIFIED, $context = NULL) {
+    /** @var \Drupal\path_alias\PathAliasInterface $path_alias */
+    $path_alias = $this->aliasStorage->create([
+      'path' => $path,
+      'alias' => $alias,
+      'langcode' => $langcode,
+      'context' => $context,
+    ]);
+    $path_alias->save();
+
+    return $path_alias;
+  }
+
+
   /**
    * {@inheritdoc}
    */
@@ -82,10 +98,8 @@ class ContextualAliasesTest extends KernelTestBase {
     parent::setUp();
     $whitelist = $this->prophesize(AliasWhitelistInterface::class);
     $whitelist->get(Argument::any())->willReturn(TRUE);
-    $this->container->set('path.alias_whitelist', $whitelist->reveal());
-    $this->installSchema('system', 'url_alias');
-    module_load_include('install', 'contextual_aliases', 'contextual_aliases');
-    contextual_aliases_install();
+    $this->container->set('path_alias.whitelist', $whitelist->reveal());
+    $this->installEntitySchema('path_alias');
 
     $this->resolver->resolveContext('/a')->willReturn('one');
     $this->resolver->resolveContext('/b')->willReturn('two');
@@ -93,24 +107,24 @@ class ContextualAliasesTest extends KernelTestBase {
     $this->resolver->resolveContext('/d')->willReturn(NULL);
     $this->resolver->resolveContext('/e')->willReturn('two');
 
-    $storage = $this->container->get('path.alias_storage');
-    $storage->save('/a', '/A', 'en');
-    $storage->save('/b', '/A', 'en');
-    $storage->save('/b', '/B', 'en');
-    $storage->save('/c', '/C', 'en');
-    $storage->save('/d', '/one/D', 'en');
-    $storage->save('/e', '/one/E', 'en');
+    $this->aliasStorage = \Drupal::entityTypeManager()->getStorage('path_alias');
 
-    $this->manager = $this->container->get('path.alias_manager');
-    $this->aliasStorage = $this->container->get('path.alias_storage');
+    $this->createPathAlias('/a', '/A', 'en', 'one');
+    $this->createPathAlias('/b', '/A', 'en');
+    $this->createPathAlias('/b', '/B', 'en', 'two');
+    $this->createPathAlias('/c', '/C', 'en');
+    $this->createPathAlias('/d', '/one/D', 'en');
+    $this->createPathAlias('/e', '/one/E', 'en', 'two');
+
+    $this->manager = $this->container->get('path_alias.manager');
   }
 
   /**
    * Test if service is injected properly.
    */
   public function testServiceInjection() {
-    $storage = $this->container->get('path.alias_storage');
-    $this->assertInstanceOf(ContextualAliasStorage::class, $storage);
+    $storage = $this->container->get('path_alias.manager');
+    $this->assertInstanceOf(ContextualAliasesManager::class, $storage);
   }
 
   /**
