@@ -61,7 +61,7 @@ trait ContextualPathFormTrait {
     elseif ($this->aliasStorage->aliasExists($alias, $langcode, NULL, $form_state->getValue('context'))) {
       $stored_alias = $this->aliasStorage->load(['alias' => $alias, 'langcode' => $langcode, 'context' => $form_state->getValue('context')]);
       if ($stored_alias['pid'] !== $form_state->getValue('pid')) {
-        $form_state->setErrorByName('alias', t('The alias %alias is already in use in this workspace.', ['%alias' => $alias]));
+        $form_state->setErrorByName('alias', t('The alias %alias is already in use in this context.', ['%alias' => $alias]));
       }
     }
 

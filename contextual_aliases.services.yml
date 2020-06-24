@@ -1,0 +1,12 @@
+services:
+  contextual_aliases.entity.query.sql:
+    decorates: entity.query.sql
+    class: Drupal\contextual_aliases\EntityQuery\QueryFactory
+    arguments: ['@database', '@path_alias.manager', '%contextual_aliases.alter_entity_query%']
+    public: false
+    decoration_priority: 55
+    tags:
+      - { name: backend_overridable }
+
+parameters:
+  contextual_aliases.alter_entity_query: TRUE

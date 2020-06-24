@@ -6,7 +6,7 @@ use Drupal\Core\Language\LanguageInterface;
 use Drupal\path_alias\AliasManager;
 
 class ContextualAliasesManager extends AliasManager {
-	
+
   /**
    * The list of alias context resolvers.
    *

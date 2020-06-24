@@ -6,7 +6,7 @@ use Drupal\path_alias\AliasRepository;
 use Drupal\workspaces\WorkspaceManagerInterface;
 
 class ContextualAliasesRepository extends AliasRepository {
-  
+
   /**
    * The workspace manager.
    *
@@ -42,7 +42,7 @@ class ContextualAliasesRepository extends AliasRepository {
       $contextCondition->condition('context', $context);
       $select->condition($contextCondition);
       $select->orderBy('context', 'DESC');
-    } 
+    }
 
     $this->addLanguageFallback($select, $langcode);
 
@@ -56,7 +56,7 @@ class ContextualAliasesRepository extends AliasRepository {
    */
   protected function getBaseQuery() {
     // Don't alter any queries if we're not in a workspace context.
-    if (!$this->workspaceManager->hasActiveWorkspace()) {
+    if (!$this->workspaceManager || !$this->workspaceManager->hasActiveWorkspace()) {
       return parent::getBaseQuery();
     }
 

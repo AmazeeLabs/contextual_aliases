@@ -19,7 +19,7 @@ class ContextualUniquePathAliasConstraint extends Constraint {
    *
    * @var string
    */
-  public $message = 'The alias %alias is already in use in this language and this workspace.';
+  public $message = 'The alias %alias is already in use in this language and this context.';
 
   /**
    * Violation message when the path alias exists with different capitalization.

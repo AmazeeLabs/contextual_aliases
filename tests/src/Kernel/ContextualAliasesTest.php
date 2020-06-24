@@ -20,7 +20,7 @@ class ContextualAliasesTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['system', 'contextual_aliases'];
+  public static $modules = ['system', 'contextual_aliases', 'options'];
 
   /**
    * The alias storage.
@@ -65,7 +65,6 @@ class ContextualAliasesTest extends KernelTestBase {
     $container->addDefinitions([
       'test.alias_context_resolver' => $definition,
     ]);
-
   }
 
   /**
@@ -90,7 +89,6 @@ class ContextualAliasesTest extends KernelTestBase {
     return $path_alias;
   }
 
-
   /**
    * {@inheritdoc}
    */
@@ -106,6 +104,7 @@ class ContextualAliasesTest extends KernelTestBase {
     $this->resolver->resolveContext('/c')->willReturn(NULL);
     $this->resolver->resolveContext('/d')->willReturn(NULL);
     $this->resolver->resolveContext('/e')->willReturn('two');
+    $this->resolver->getCurrentContext()->willReturn(NULL);
 
     $this->aliasStorage = \Drupal::entityTypeManager()->getStorage('path_alias');
 
@@ -210,6 +209,36 @@ class ContextualAliasesTest extends KernelTestBase {
     $this->resolver->getCurrentContext()->willReturn('two');
     $this->assertEquals('/e', $this->manager->getPathByAlias('/one/E'));
     $this->assertEquals('/one/E', $this->manager->getAliasByPath('/e'));
+  }
+
+  /**
+   * Test contextual aliases that contain another context's prefix.
+   */
+  public function testCreationWithoutExplicitContext() {
+    $this->resolver->getCurrentContext()->willReturn('one');
+    $alias = $this->createPathAlias('/implicit-context-one', '/IMPLICIT-CONTEXT-ONE  ', 'en');
+    $this->assertEquals('one', $alias->get('context')->value);
+  }
+
+  /**
+   * Test contextual aliases that contain another context's prefix.
+   */
+  public function testEntityQueryWithinContext() {
+    $this->resolver->getCurrentContext()->willReturn(NULL);
+    $result = $this->aliasStorage->getQuery()
+      ->condition('path', '/b', '=')
+      ->execute();
+    $this->assertCount(2, $result);
+    $entity = $this->aliasStorage->load(array_shift($result));
+    $this->assertEquals('/A', $entity->getAlias());
+
+    $this->resolver->getCurrentContext()->willReturn('two');
+    $result = $this->aliasStorage->getQuery()
+      ->condition('path', '/b', '=')
+      ->execute();
+        $this->assertCount(1, $result);
+    $entity = $this->aliasStorage->load(array_shift($result));
+    $this->assertEquals('/B', $entity->getAlias());
   }
 
 }
