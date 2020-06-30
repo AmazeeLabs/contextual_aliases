@@ -46,6 +46,13 @@ class Query extends BaseQuery {
     $context = $this->contextualAliasesManager->getCurrentContext();
     if ($context) {
       $this->sqlQuery->condition('base_table.context', $context);
+      $contextCondition = $this->sqlQuery->orConditionGroup();
+      $contextCondition->isNull('base_table.context');
+      $contextCondition->condition('base_table.context', $context);
+      $this->sqlQuery->condition($contextCondition);
+      $this->sqlQuery->orderBy('base_table.context', 'DESC');
+    } else {
+      $this->sqlQuery->isNull('base_table.context');
     }
 
     return $this;

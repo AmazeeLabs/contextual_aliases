@@ -20,7 +20,7 @@ class ContextualAliasesTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['system', 'contextual_aliases', 'options'];
+  public static $modules = ['system', 'contextual_aliases', 'options', 'entity_test', 'user'];
 
   /**
    * The alias storage.
@@ -98,12 +98,15 @@ class ContextualAliasesTest extends KernelTestBase {
     $whitelist->get(Argument::any())->willReturn(TRUE);
     $this->container->set('path_alias.whitelist', $whitelist->reveal());
     $this->installEntitySchema('path_alias');
+    $this->installEntitySchema('user');
+    $this->installEntitySchema('entity_test');
 
     $this->resolver->resolveContext('/a')->willReturn('one');
     $this->resolver->resolveContext('/b')->willReturn('two');
     $this->resolver->resolveContext('/c')->willReturn(NULL);
     $this->resolver->resolveContext('/d')->willReturn(NULL);
     $this->resolver->resolveContext('/e')->willReturn('two');
+    $this->resolver->resolveContext('/f')->willReturn('one');
     $this->resolver->getCurrentContext()->willReturn(NULL);
 
     $this->aliasStorage = \Drupal::entityTypeManager()->getStorage('path_alias');
@@ -228,7 +231,7 @@ class ContextualAliasesTest extends KernelTestBase {
     $result = $this->aliasStorage->getQuery()
       ->condition('path', '/b', '=')
       ->execute();
-    $this->assertCount(2, $result);
+    $this->assertCount(1, $result);
     $entity = $this->aliasStorage->load(array_shift($result));
     $this->assertEquals('/A', $entity->getAlias());
 
@@ -239,6 +242,69 @@ class ContextualAliasesTest extends KernelTestBase {
         $this->assertCount(1, $result);
     $entity = $this->aliasStorage->load(array_shift($result));
     $this->assertEquals('/B', $entity->getAlias());
+  }
+
+  /**
+   * Test contextual aliases that contain another context's prefix.
+   */
+  public function testUnaffectedEntityQuery() {
+    /** @var \Drupal\Core\Entity\EntityTypeManagerInterface $entityTypeManager */
+    $entityTypeManager = $this->container->get('entity_type.manager');
+    $entityTestStorage = $entityTypeManager->getStorage('entity_test');
+
+    $this->resolver->getCurrentContext()->willReturn(NULL);
+    $entityTestStorage->getQuery()->execute();
+
+    $this->resolver->getCurrentContext()->willReturn('two');
+    $entityTestStorage->getQuery()->execute();
+  }
+
+  /**
+   * Test contextual aliases that contain another context's prefix.
+   */
+  public function testUniquifier() {
+    /** @var \Drupal\Core\Extension\ModuleExtensionList $moduleExtensionList */
+    $moduleExtensionList = $this->container->get('extension.list.module');
+    try {
+      $moduleExtensionList->get('pathauto');
+      $pathautoExists = TRUE;
+    } catch (\Exception $ex) {
+      $pathautoExists = FALSE;
+    }
+    if ($pathautoExists) {
+      $this->enableModules(['pathauto', 'token', 'ctools']);
+      /** @var \Drupal\contextual_aliases\ContextualAliasUniquifier $uniquifier */
+      $uniquifier = $this->container->get('pathauto.alias_uniquifier');
+      $this->resolver->resolveContext('/a')->willReturn('one');
+      $this->resolver->resolveContext('/b')->willReturn('two');
+      $this->resolver->resolveContext('/c')->willReturn(NULL);
+      $this->resolver->resolveContext('/f')->willReturn('one');
+      $this->resolver->resolveContext('/m')->willReturn(NULL);
+
+      $freeAlias = '/Z';
+      $uniquifier->uniquify($freeAlias, '/a', 'en');
+      $this->assertEquals('/Z', $freeAlias);
+
+      $existingAlias = '/A';
+      $uniquifier->uniquify($existingAlias, '/a', 'en');
+      // Existing aliases shouldn't be altered.
+      $this->assertEquals( '/A', $existingAlias);
+
+      $reservedAlias = '/A';
+      $uniquifier->uniquify($reservedAlias, '/f', 'en');
+      // Without setting the pathauto settings the uniquified alias ends up
+      // as a '0'.
+      $this->assertEquals('0', $reservedAlias);
+
+      $this->resolver->getCurrentContext()->willReturn(NULL);
+      $noContextAliasExisting = '/C';
+      $uniquifier->uniquify($noContextAliasExisting, '/c', 'en');
+      $this->assertEquals( '/C', $noContextAliasExisting);
+
+      $noContextAliasConflicting = '/C';
+      $uniquifier->uniquify($noContextAliasConflicting, '/m', 'en');
+      $this->assertEquals( '0', $noContextAliasConflicting);
+    }
   }
 
 }

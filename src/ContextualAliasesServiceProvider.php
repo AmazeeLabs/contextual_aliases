@@ -36,8 +36,7 @@ class ContextualAliasesServiceProvider extends ServiceProviderBase {
 
     if ($container->has('pathauto.alias_uniquifier')) {
       $container->getDefinition('pathauto.alias_uniquifier')
-        ->setClass(ContextualAliasUniquifier::class)
-        ->addArgument(new Reference('path.alias_storage'));
+        ->setClass(ContextualAliasUniquifier::class);
     }
 
     if ($container->has('redirect.repository')) {

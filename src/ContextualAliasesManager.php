@@ -14,7 +14,21 @@ class ContextualAliasesManager extends AliasManager {
    */
   protected $contextResolvers = [];
 
+  /**
+   * Context override has priority over the resolved one.
+   *
+   * @var null|string
+   */
   protected $contextOverride = NULL;
+
+  /**
+   * Returns the path alias repository service.
+   *
+   * @return \Drupal\contextual_aliases\ContextualAliasesRepository
+   */
+  public function getAliasRepository() {
+    return $this->pathAliasRepository;
+  }
 
   /**
    * Add an alias context resolver.
@@ -25,6 +39,9 @@ class ContextualAliasesManager extends AliasManager {
 
   /**
    * Retrieve the contexts for a given source path.
+   *
+   * @param string $source
+   *   Source path.
    *
    * @return string
    *   The list of source contexts.
@@ -67,6 +84,33 @@ class ContextualAliasesManager extends AliasManager {
       return $resolver->getContextOptions();
     }, $this->contextResolvers), 'array_merge', []);
     return $return;
+  }
+
+  /**
+   * Execute a callable within a given context.
+   *
+   * Used to simulate context during certain procedures.
+   *
+   * @param callable $callable
+   *   The callable to execute.
+   * @oaram string $context
+   *   The context to set.
+   *
+   * @throws \Exception
+   *   Whatever exception the callable throws.
+   *
+   * @return mixed
+   *   The callable return value.
+   */
+  public function executeInContext(callable $callable, $context) {
+    $this->contextOverride = $context;
+    try {
+      return $callable();
+    } catch(\Exception $exc) {
+      throw $exc;
+    } finally {
+      $this->contextOverride = NULL;
+    }
   }
 
   /**
