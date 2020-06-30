@@ -2,10 +2,11 @@
 
 namespace Drupal\contextual_aliases\EntityQuery;
 
+use Drupal\contextual_aliases\ContextualAliasesManager;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\Query\Sql\Query as BaseQuery;
-use Drupal\path_alias\AliasManager;
+use Drupal\Core\Path\AliasManager;
 
 /**
  * Alters entity queries to use a workspace revision instead of the default one.
@@ -14,9 +15,9 @@ class Query extends BaseQuery {
   /**
    * The workspace manager.
    *
-   * @var \Drupal\contextual_aliases\ContextualAliasesManager
+   * @var \Drupal\Core\Path\AliasManager
    */
-  protected $contextualAliasesManager;
+  protected $aliasManager;
 
   /**
    * Constructs a Query object.
@@ -30,12 +31,12 @@ class Query extends BaseQuery {
    *   The database connection to run the query against.
    * @param array $namespaces
    *   List of potential namespaces of the classes belonging to this query.
-   * @param \Drupal\path_alias\AliasManager $contextual_aliases_manager
+   * @param \Drupal\Core\Path\AliasManager $alias_manager
    *   The contextual aliases manager.
    */
-  public function __construct(EntityTypeInterface $entity_type, $conjunction, Connection $connection, array $namespaces, AliasManager $contextual_aliases_manager) {
+  public function __construct(EntityTypeInterface $entity_type, $conjunction, Connection $connection, array $namespaces, AliasManager $alias_manager) {
     parent::__construct($entity_type, $conjunction, $connection, $namespaces);
-    $this->contextualAliasesManager = $contextual_aliases_manager;
+    $this->aliasManager = $alias_manager;
   }
 
   /**
@@ -43,7 +44,12 @@ class Query extends BaseQuery {
    */
   public function prepare() {
     parent::prepare();
-    $context = $this->contextualAliasesManager->getCurrentContext();
+
+    if (!($this->aliasManager instanceof ContextualAliasesManager)) {
+
+    }
+
+    $context = $this->aliasManager->getCurrentContext();
     if ($context) {
       $this->sqlQuery->condition('base_table.context', $context);
       $contextCondition = $this->sqlQuery->orConditionGroup();

@@ -3,7 +3,7 @@
 namespace Drupal\contextual_aliases;
 
 use Drupal\Core\Language\LanguageInterface;
-use Drupal\path_alias\AliasManager;
+use Drupal\Core\Path\AliasManager;
 
 class ContextualAliasesManager extends AliasManager {
 

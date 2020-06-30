@@ -7,7 +7,6 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\contextual_aliases\ContextualPathAliasListBuilder;
 use Drupal\contextual_aliases\Entity\ContextualRedirect;
 use Drupal\contextual_aliases\Form\ContextualRedirectForm;
-use Drupal\path_alias\Entity\PathAlias;
 use Drupal\redirect\Plugin\Field\FieldWidget\RedirectSourceWidget;
 
 /**
@@ -84,7 +83,7 @@ function contextual_aliases_entity_base_field_info(EntityTypeInterface $entity_t
  *
  * @param \Drupal\path_alias\Entity\PathAlias $pathAlias
  */
-function contextual_aliases_path_alias_create(PathAlias $pathAlias) {
+function contextual_aliases_path_alias_create($pathAlias) {
   if ($pathAlias->get('context')->isEmpty()) {
     /** @var \Drupal\contextual_aliases\ContextualAliasesManager $manager */
     $manager = \Drupal::service('path_alias.manager');

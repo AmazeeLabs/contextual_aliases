@@ -17,22 +17,26 @@ class ContextualAliasesServiceProvider extends ServiceProviderBase {
    * {@inheritdoc}
    */
   public function register(ContainerBuilder $container) {
-    $container->addCompilerPass(new ContextualAliasesPass());
+    if ($container->has('path_alias.repository')) {
+      $container->addCompilerPass(new ContextualAliasesPass());
+    }
   }
 
   /**
    * {@inheritdoc}
    */
   public function alter(ContainerBuilder $container) {
-    $container->getDefinition('path_alias.repository')
-      ->setClass(ContextualAliasesRepository::class);
+    if ($container->has('path_alias.repository')) {
+      $container->getDefinition('path_alias.repository')
+        ->setClass(ContextualAliasesRepository::class);
 
-    $container->getDefinition('path_alias.manager')
-      ->setClass(ContextualAliasesManager::class)
-      ->addTag('service_collector', [
-        'tag' => 'alias_context_resolver',
-        'call' => 'addContextResolver',
-      ]);
+      $container->getDefinition('path_alias.manager')
+        ->setClass(ContextualAliasesManager::class)
+        ->addTag('service_collector', [
+          'tag' => 'alias_context_resolver',
+          'call' => 'addContextResolver',
+        ]);
+    }
 
     if ($container->has('pathauto.alias_uniquifier')) {
       $container->getDefinition('pathauto.alias_uniquifier')
