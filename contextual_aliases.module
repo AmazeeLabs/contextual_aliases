@@ -65,6 +65,7 @@ function contextual_aliases_entity_base_field_info(EntityTypeInterface $entity_t
     $fields['context'] = BaseFieldDefinition::create('list_string')
       ->setLabel(new TranslatableMarkup('Path Alias context'))
       ->setTranslatable(TRUE)
+      ->setRevisionable(TRUE)
       ->setDefaultValue('')
       ->setSetting('allowed_values_function', 'contextual_aliases_context_options')
       ->setDisplayOptions('form', [
