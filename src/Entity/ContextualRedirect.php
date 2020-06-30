@@ -10,24 +10,26 @@ use Drupal\redirect\Entity\Redirect;
 class ContextualRedirect extends Redirect {
 
   public function preSave(EntityStorageInterface $storage_controller) {
-    /** @var \Drupal\contextual_aliases\ContextualAliasStorage $aliasStorage */
-    $aliasStorage = \Drupal::service('path.alias_storage');
-    $url = $this->redirect_redirect->uri;
-    $context = parse_url($url, PHP_URL_PATH) ? $aliasStorage->getSourceContext($url) : NULL;
-    if ($context) {
-      $this->set('context', $context);
-      $this->set('hash', Redirect::generateHash(
-        $context . '/' . $this->redirect_source->path,
-        (array) $this->redirect_source->query,
-        $this->language()->getId()
-      ));
-    }
-    else if ($this->context->value) {
-      $this->set('hash', Redirect::generateHash(
-        $this->context->value . '/' . $this->redirect_source->path,
-        (array) $this->redirect_source->query,
-        $this->language()->getId()
-      ));
+    if (\Drupal::moduleHandler()->moduleExists('path_alias')) {
+      /** @var \Drupal\contextual_aliases\ContextualAliasesManager $aliasManager */
+      $aliasManager = \Drupal::service('path_alias.manager');
+      $url = $this->redirect_redirect->uri;
+      $context = parse_url($url, PHP_URL_PATH) ? $aliasManager->getSourceContext($url) : NULL;
+      if ($context) {
+        $this->set('context', $context);
+        $this->set('hash', Redirect::generateHash(
+          $context . '/' . $this->redirect_source->path,
+          (array) $this->redirect_source->query,
+          $this->language()->getId()
+        ));
+      }
+      else if ($this->context->value) {
+        $this->set('hash', Redirect::generateHash(
+          $this->context->value . '/' . $this->redirect_source->path,
+          (array) $this->redirect_source->query,
+          $this->language()->getId()
+        ));
+      }
     }
   }
 

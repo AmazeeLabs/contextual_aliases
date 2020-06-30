@@ -2,7 +2,7 @@
 
 namespace Drupal\contextual_aliases;
 
-use Drupal\Core\Path\AliasRepository;
+use Drupal\path_alias\AliasRepository;
 use Drupal\workspaces\WorkspaceManagerInterface;
 
 class ContextualAliasesRepository extends AliasRepository {

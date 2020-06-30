@@ -7,7 +7,6 @@ use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Path\AliasWhitelistInterface;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\contextual_aliases\AliasContextResolverInterface;
-use Drupal\contextual_aliases\ContextualAliasStorage;
 use Drupal\contextual_aliases\ContextualAliasesManager;
 use Prophecy\Argument;
 use Symfony\Component\DependencyInjection\Definition;
