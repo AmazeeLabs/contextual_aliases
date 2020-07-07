@@ -7,7 +7,7 @@ use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Path\AliasWhitelistInterface;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\contextual_aliases\AliasContextResolverInterface;
-use Drupal\contextual_aliases\ContextualAliasesManager;
+use Drupal\contextual_aliases\ContextualAliasesContextManager;
 use Prophecy\Argument;
 use Symfony\Component\DependencyInjection\Definition;
 
@@ -122,14 +122,6 @@ class ContextualAliasesTest extends KernelTestBase {
     $this->createPathAlias('/e', '/one/E', 'en', 'two');
 
     $this->manager = $this->container->get('path_alias.manager');
-  }
-
-  /**
-   * Test if service is injected properly.
-   */
-  public function testServiceInjection() {
-    $storage = $this->container->get('path_alias.manager');
-    $this->assertInstanceOf(ContextualAliasesManager::class, $storage);
   }
 
   /**
@@ -350,6 +342,8 @@ class ContextualAliasesTest extends KernelTestBase {
   public function testLookupBySystemPath() {
     /** @var \Drupal\contextual_aliases\ContextualAliasesRepository $aliasRepository */
     $aliasRepository = \Drupal::service('path_alias.repository');
+    $aliasManager = \Drupal::service('path_alias.manager');
+    $routeProvider = \Drupal::service('router.route_provider');
 
     $this->resolver->resolveContext('/g')->willReturn(NULL);
     $alias1 = $this->createPathAlias('/g', '/G1', 'en');

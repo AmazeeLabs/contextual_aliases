@@ -86,8 +86,8 @@ function contextual_aliases_entity_base_field_info(EntityTypeInterface $entity_t
  */
 function contextual_aliases_path_alias_create($pathAlias) {
   if ($pathAlias->get('context')->isEmpty()) {
-    /** @var \Drupal\contextual_aliases\ContextualAliasesManager $manager */
-    $manager = \Drupal::service('path_alias.manager');
+    /** @var \Drupal\contextual_aliases\ContextualAliasesContextManager $manager */
+    $manager = \Drupal::service('contextual_aliases.context_manager');
     $context = $manager->getCurrentContext();
     if ($context) {
       $pathAlias->get('context')->setValue($context);
@@ -101,8 +101,8 @@ function contextual_aliases_path_alias_create($pathAlias) {
  * @param \Drupal\path_alias\Entity\PathAlias $pathAlias
  */
 function contextual_aliases_path_alias_presave($pathAlias) {
-  /** @var \Drupal\contextual_aliases\ContextualAliasesManager $manager */
-  $manager = \Drupal::service('path_alias.manager');
+  /** @var \Drupal\contextual_aliases\ContextualAliasesContextManager $manager */
+  $manager = \Drupal::service('contextual_aliases.context_manager');
   $context = $manager->getSourceContext($pathAlias->getPath());
   if ($context) {
     $pathAlias->get('context')->setValue($context);

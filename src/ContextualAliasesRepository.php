@@ -9,20 +9,20 @@ class ContextualAliasesRepository extends AliasRepository {
   /**
    * The workspace manager.
    *
-   * @var \Drupal\contextual_aliases\ContextualAliasesManager
+   * @var \Drupal\contextual_aliases\ContextualAliasesContextManager
    */
-  protected $aliasesManager;
+  protected $contextManager;
 
   /**
    * Sets the workspace manager.
    *
-   * @param \Drupal\contextual_aliases\ContextualAliasesManager
+   * @param \Drupal\contextual_aliases\ContextualAliasesContextManager
    *   The workspace manager service.
    *
    * @return $this
    */
-  public function setAliasManager($aliases_manager) {
-    $this->aliasesManager = $aliases_manager;
+  public function setContextManager($context_manager) {
+    $this->contextManager = $context_manager;
     return $this;
   }
 
@@ -37,7 +37,7 @@ class ContextualAliasesRepository extends AliasRepository {
 
     $this->addContextConditions(
       $select,
-      $this->aliasesManager->getCurrentContext()
+      $this->contextManager->getCurrentContext()
     );
 
     $this->addLanguageFallback($select, $langcode);
@@ -58,7 +58,7 @@ class ContextualAliasesRepository extends AliasRepository {
 
     $this->addContextConditions(
       $select,
-      $this->aliasesManager->getSourceContext($path)
+      $this->contextManager->getSourceContext($path)
     );
 
     $this->addLanguageFallback($select, $langcode);

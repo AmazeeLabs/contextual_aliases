@@ -11,7 +11,7 @@ class ContextualRedirect extends Redirect {
 
   public function preSave(EntityStorageInterface $storage_controller) {
     if (\Drupal::moduleHandler()->moduleExists('path_alias')) {
-      /** @var \Drupal\contextual_aliases\ContextualAliasesManager $aliasManager */
+      /** @var \Drupal\contextual_aliases\ContextualAliasesContextManager $aliasManager */
       $aliasManager = \Drupal::service('path_alias.manager');
       $url = $this->redirect_redirect->uri;
       $context = parse_url($url, PHP_URL_PATH) ? $aliasManager->getSourceContext($url) : NULL;

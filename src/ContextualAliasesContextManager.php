@@ -5,7 +5,7 @@ namespace Drupal\contextual_aliases;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\path_alias\AliasManager;
 
-class ContextualAliasesManager extends AliasManager {
+class ContextualAliasesContextManager {
 
   /**
    * The list of alias context resolvers.
@@ -20,15 +20,6 @@ class ContextualAliasesManager extends AliasManager {
    * @var null|string
    */
   protected $contextOverride = NULL;
-
-  /**
-   * Returns the path alias repository service.
-   *
-   * @return \Drupal\contextual_aliases\ContextualAliasesRepository
-   */
-  public function getAliasRepository() {
-    return $this->pathAliasRepository;
-  }
 
   /**
    * Add an alias context resolver.

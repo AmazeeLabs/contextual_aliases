@@ -34,7 +34,7 @@ class ContextualRedirectRepository extends RedirectRepository {
     array $query = [],
     $language = Language::LANGCODE_NOT_SPECIFIED
   ) {
-    if ($this->aliasManager instanceof ContextualAliasesManager) {
+    if ($this->aliasManager instanceof ContextualAliasesContextManager) {
       $context = $this->aliasManager->getCurrentContext();
       if ($context) {
         return parent::findMatchingRedirect(

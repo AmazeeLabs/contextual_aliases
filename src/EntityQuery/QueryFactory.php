@@ -6,8 +6,7 @@ use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\Query\QueryBase;
 use Drupal\Core\Entity\Query\Sql\QueryFactory as BaseQueryFactory;
-use Drupal\contextual_aliases\ContextualAliasesManager;
-use Drupal\Core\Path\AliasManager;
+use Drupal\contextual_aliases\ContextualAliasesContextManager;
 
 /**
  * Workspaces-specific entity query implementation.
@@ -17,9 +16,9 @@ class QueryFactory extends BaseQueryFactory {
   /**
    * The workspace manager.
    *
-   * @var \Drupal\Core\Path\AliasManager
+   * @var ContextualAliasesContextManager
    */
-  protected $aliasManager;
+  protected $contextManager;
 
   /**
    * A parameter determining if the entity query should be altered.
@@ -33,14 +32,14 @@ class QueryFactory extends BaseQueryFactory {
    *
    * @param \Drupal\Core\Database\Connection $connection
    *   The database connection used by the entity query.
-   * @param \Drupal\Core\Path\AliasManager $alias_manager
+   * @param ContextualAliasesContextManager $context_manager
    *   The contextual aliases manager.
    * @param bool $alter_entity_query
    */
-  public function __construct(Connection $connection, AliasManager $alias_manager, Bool $alter_entity_query) {
+  public function __construct(Connection $connection, ContextualAliasesContextManager $context_manager, Bool $alter_entity_query) {
     $this->connection = $connection;
     $this->namespaces = self::getClassNamespaces(get_parent_class($this));
-    $this->aliasManager = $alias_manager;
+    $this->contextManager = $context_manager;
     $this->alterEntityQuery = $alter_entity_query;
   }
 
@@ -48,13 +47,13 @@ class QueryFactory extends BaseQueryFactory {
    * {@inheritdoc}
    */
   public function get(EntityTypeInterface $entity_type, $conjunction) {
-    if (!($this->aliasManager instanceof ContextualAliasesManager) || $entity_type->id() != 'path_alias' || !$this->alterEntityQuery) {
+    if (!($this->contextManager instanceof ContextualAliasesContextManager) || $entity_type->id() != 'path_alias' || !$this->alterEntityQuery) {
       return parent::get($entity_type, $conjunction);
     }
 
     $namespaces = QueryBase::getNamespaces($this);
     $class = QueryBase::getClass($namespaces, 'Query');
-    return new $class($entity_type, $conjunction, $this->connection, $namespaces, $this->aliasManager);
+    return new $class($entity_type, $conjunction, $this->connection, $namespaces, $this->contextManager);
   }
 
   /**
