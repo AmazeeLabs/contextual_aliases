@@ -103,7 +103,9 @@ class ContextualAliasesTest extends KernelTestBase {
     $this->resolver->resolveContext('/a')->willReturn('one');
     $this->resolver->resolveContext('/b')->willReturn('two');
     $this->resolver->resolveContext('/c')->willReturn(NULL);
+    $this->resolver->resolveContext('/c-context-one')->willReturn('one');
     $this->resolver->resolveContext('/d')->willReturn(NULL);
+    $this->resolver->resolveContext('/d-no-context')->willReturn(NULL);
     $this->resolver->resolveContext('/e')->willReturn('two');
     $this->resolver->resolveContext('/f')->willReturn('one');
     $this->resolver->getCurrentContext()->willReturn(NULL);
@@ -114,6 +116,8 @@ class ContextualAliasesTest extends KernelTestBase {
     $this->createPathAlias('/b', '/A', 'en');
     $this->createPathAlias('/b', '/B', 'en', 'two');
     $this->createPathAlias('/c', '/C', 'en');
+    $this->createPathAlias('/c-context-one', '/C', 'en');
+    $this->createPathAlias('/d-no-context', '/D', 'en');
     $this->createPathAlias('/d', '/one/D', 'en');
     $this->createPathAlias('/e', '/one/E', 'en', 'two');
 
@@ -142,7 +146,9 @@ class ContextualAliasesTest extends KernelTestBase {
    */
   public function testNoContextContextualAlias() {
     $this->resolver->getCurrentContext()->willReturn(NULL);
-    $this->assertEquals('/b', $this->manager->getPathByAlias('/A'));
+    // The source context is overridden in contextual_aliases_entity_presave, so
+    // there is no source path under /A with no context.
+    $this->assertEquals('/A', $this->manager->getPathByAlias('/A'));
     $this->assertEquals('/A', $this->manager->getAliasByPath('/a'));
   }
 
@@ -169,8 +175,8 @@ class ContextualAliasesTest extends KernelTestBase {
    */
   public function testContextNotMatchingAlias() {
     $this->resolver->getCurrentContext()->willReturn('three');
-    $this->assertEquals('/b', $this->manager->getPathByAlias('/A'));
-    $this->assertEquals('/A', $this->manager->getAliasByPath('/a'));
+    $this->assertEquals('/c', $this->manager->getPathByAlias('/C'));
+    $this->assertEquals('/D', $this->manager->getAliasByPath('/d-no-context'));
   }
 
   /**
@@ -178,8 +184,8 @@ class ContextualAliasesTest extends KernelTestBase {
    */
   public function testContextSimpleAlias() {
     $this->resolver->getCurrentContext()->willReturn('one');
-    $this->assertEquals('/c', $this->manager->getPathByAlias('/C'));
-    $this->assertEquals('/C', $this->manager->getAliasByPath('/c'));
+    $this->assertEquals('/c-context-one', $this->manager->getPathByAlias('/C'));
+    $this->assertEquals('/C', $this->manager->getAliasByPath('/c-context-one'));
   }
 
   /**
@@ -200,16 +206,12 @@ class ContextualAliasesTest extends KernelTestBase {
    */
   public function testContextualConflictingAlias() {
     $this->resolver->getCurrentContext()->willReturn(NULL);
-    $this->assertEquals('/e', $this->manager->getPathByAlias('/one/E'));
-    $this->assertEquals('/one/E', $this->manager->getAliasByPath('/e'));
+    $this->assertEquals('/one/E', $this->manager->getPathByAlias('/one/E'));
 
     $this->resolver->getCurrentContext()->willReturn('one');
-    $this->assertEquals('/two/E', $this->manager->getPathByAlias('/two/E'));
-    $this->assertEquals('/e', $this->manager->getPathByAlias('/one/E'));
-    $this->assertEquals('/one/E', $this->manager->getAliasByPath('/e'));
+    $this->assertEquals('/one/E', $this->manager->getPathByAlias('/one/E'));
 
     $this->resolver->getCurrentContext()->willReturn('two');
-    $this->assertEquals('/e', $this->manager->getPathByAlias('/one/E'));
     $this->assertEquals('/one/E', $this->manager->getAliasByPath('/e'));
   }
 
@@ -218,8 +220,14 @@ class ContextualAliasesTest extends KernelTestBase {
    */
   public function testCreationWithoutExplicitContext() {
     $this->resolver->getCurrentContext()->willReturn('one');
+    $this->resolver->resolveContext('/implicit-context-one')->willReturn('one');
     $alias = $this->createPathAlias('/implicit-context-one', '/IMPLICIT-CONTEXT-ONE  ', 'en');
     $this->assertEquals('one', $alias->get('context')->value);
+
+    $alias = $this->createPathAlias('/b', '/new-alias  ', 'en');
+    // The current context is one, but the source context for /b is two so that
+    // should take precedence.
+    $this->assertEquals('two', $alias->get('context')->value);
   }
 
   /**
@@ -230,17 +238,33 @@ class ContextualAliasesTest extends KernelTestBase {
     $result = $this->aliasStorage->getQuery()
       ->condition('path', '/b', '=')
       ->execute();
-    $this->assertCount(1, $result);
-    $entity = $this->aliasStorage->load(array_shift($result));
-    $this->assertEquals('/A', $entity->getAlias());
+    $this->assertCount(0, $result);
 
     $this->resolver->getCurrentContext()->willReturn('two');
     $result = $this->aliasStorage->getQuery()
       ->condition('path', '/b', '=')
       ->execute();
-        $this->assertCount(1, $result);
+        $this->assertCount(2, $result);
+    $entities = $this->aliasStorage->loadMultiple($result);
+    $aliases = [(array_shift($entities))->getAlias(), (array_shift($entities))->getAlias()];
+    $this->assertArraySubset(['/A', '/B'], $aliases);
+
+    $result = $this->aliasStorage->getQuery()
+      ->condition('alias', '/A', '=')
+      ->execute();
+    $this->assertCount(1, $result);
+    /** @var \Drupal\path_alias\Entity\PathAlias $entity */
     $entity = $this->aliasStorage->load(array_shift($result));
-    $this->assertEquals('/B', $entity->getAlias());
+    $this->assertEquals('/b', $entity->getPath());
+
+    $this->resolver->getCurrentContext()->willReturn('one');
+    $result = $this->aliasStorage->getQuery()
+      ->condition('alias', '/A', '=')
+      ->execute();
+    $this->assertCount(1, $result);
+    /** @var \Drupal\path_alias\Entity\PathAlias $entity */
+    $entity = $this->aliasStorage->load(array_shift($result));
+    $this->assertEquals('/a', $entity->getPath());
   }
 
   /**
@@ -304,6 +328,50 @@ class ContextualAliasesTest extends KernelTestBase {
       $uniquifier->uniquify($noContextAliasConflicting, '/m', 'en');
       $this->assertEquals( '0', $noContextAliasConflicting);
     }
+  }
+
+  public function testPathAliasCreateHook() {
+    $this->resolver->getCurrentContext()->willReturn(NULL);
+    $this->resolver->resolveContext('/h')->willReturn(NULL);
+    $alias1 = $this->createPathAlias('/h', '/H', 'en');
+    $this->assertEquals(NULL, $alias1->get('context')->value);
+
+    $this->resolver->getCurrentContext()->willReturn(NULL);
+    $this->resolver->resolveContext('/i')->willReturn('context1');
+    $alias2 = $this->createPathAlias('/i', '/I', 'en');
+    $this->assertEquals('context1', $alias2->get('context')->value);
+
+    $this->resolver->getCurrentContext()->willReturn('context1');
+    $this->resolver->resolveContext('/j')->willReturn(NULL);
+    $alias2 = $this->createPathAlias('/j', '/J', 'en');
+    $this->assertEquals('context1', $alias2->get('context')->value);
+  }
+
+  public function testLookupBySystemPath() {
+    /** @var \Drupal\contextual_aliases\ContextualAliasesRepository $aliasRepository */
+    $aliasRepository = \Drupal::service('path_alias.repository');
+
+    $this->resolver->resolveContext('/g')->willReturn(NULL);
+    $alias1 = $this->createPathAlias('/g', '/G1', 'en');
+    $alias2 = $this->createPathAlias('/g', '/G2', 'en', 'context1');
+    $alias3 = $this->createPathAlias('/g', '/G3', 'en', 'context2');
+
+    $this->resolver->resolveContext('/g')->willReturn(NULL);
+    $alias = $aliasRepository->lookupBySystemPath('/g', 'en');
+    // Since there is no context provided, loaded alias should be $alias1.
+    $this->assertEquals('/G1', $alias['alias']);
+
+    $this->resolver->resolveContext('/g')->willReturn('context1');
+    // Since 'context1' was provided explicitly, loaded alias should
+    // be $alias2.
+    $alias = $aliasRepository->lookupBySystemPath('/g', 'en');
+    $this->assertEquals('/G2', $alias['alias']);
+
+    $this->resolver->resolveContext('/g')->willReturn('context2');
+    // Since 'context1' was provided explicitly, loaded alias should
+    // be $alias2.
+    $alias = $aliasRepository->lookupBySystemPath('/g', 'en');
+    $this->assertEquals('/G3', $alias['alias']);
   }
 
 }

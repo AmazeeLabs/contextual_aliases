@@ -3,46 +3,42 @@
 namespace Drupal\contextual_aliases;
 
 use Drupal\path_alias\AliasRepository;
-use Drupal\workspaces\WorkspaceManagerInterface;
 
 class ContextualAliasesRepository extends AliasRepository {
 
   /**
    * The workspace manager.
    *
-   * @var \Drupal\workspaces\WorkspaceManagerInterface
+   * @var \Drupal\contextual_aliases\ContextualAliasesManager
    */
-  protected $workspaceManager;
+  protected $aliasesManager;
 
   /**
    * Sets the workspace manager.
    *
-   * @param \Drupal\workspaces\WorkspaceManagerInterface $workspace_manager
+   * @param \Drupal\contextual_aliases\ContextualAliasesManager
    *   The workspace manager service.
    *
    * @return $this
    */
-  public function setWorkspacesManager(WorkspaceManagerInterface $workspace_manager) {
-    $this->workspaceManager = $workspace_manager;
+  public function setAliasManager($aliases_manager) {
+    $this->aliasesManager = $aliases_manager;
     return $this;
   }
 
   /**
    * {@inheritdoc}
    */
-  public function lookupByAlias($alias, $langcode, $context = NULL) {
+  public function lookupByAlias($alias, $langcode) {
     // See the queries above. Use LIKE for case-insensitive matching.
     $select = $this->getBaseQuery()
       ->fields('base_table', ['id', 'path', 'alias', 'langcode'])
       ->condition('base_table.alias', $this->connection->escapeLike($alias), 'LIKE');
 
-    if (!empty($context)) {
-      $contextCondition = $select->orConditionGroup();
-      $contextCondition->isNull('context');
-      $contextCondition->condition('context', $context);
-      $select->condition($contextCondition);
-      $select->orderBy('context', 'DESC');
-    }
+    $this->addContextConditions(
+      $select,
+      $this->aliasesManager->getCurrentContext()
+    );
 
     $this->addLanguageFallback($select, $langcode);
 
@@ -54,21 +50,41 @@ class ContextualAliasesRepository extends AliasRepository {
   /**
    * {@inheritdoc}
    */
-  protected function getBaseQuery() {
-    // Don't alter any queries if we're not in a workspace context.
-    if (!$this->workspaceManager || !$this->workspaceManager->hasActiveWorkspace()) {
-      return parent::getBaseQuery();
+  public function lookupBySystemPath($path, $langcode) {
+    // See the queries above. Use LIKE for case-insensitive matching.
+    $select = $this->getBaseQuery()
+      ->fields('base_table', ['id', 'path', 'alias', 'langcode', 'context'])
+      ->condition('base_table.path', $this->connection->escapeLike($path), 'LIKE');
+
+    $this->addContextConditions(
+      $select,
+      $this->aliasesManager->getSourceContext($path)
+    );
+
+    $this->addLanguageFallback($select, $langcode);
+
+    $select->orderBy('base_table.id', 'DESC');
+
+    return $select->execute()->fetchAssoc() ?: NULL;
+  }
+
+  /**
+   * Add context conditions to the given query.
+   *
+   * @param \Drupal\Core\Database\Query\SelectInterface $select
+   * @param null|string $context
+   */
+  protected function addContextConditions($select, $context = NULL) {
+    if (!empty($context)) {
+      $contextCondition = $select->orConditionGroup();
+      $contextCondition->isNull('base_table.context');
+      $contextCondition->condition('base_table.context', $context);
+      $select->condition($contextCondition);
+      $select->orderBy('base_table.context', 'DESC');
+    } else {
+      $select->isNull('base_table.context');
+      $select->orderBy('base_table.context', 'ASC');
     }
-
-    $active_workspace = $this->workspaceManager->getActiveWorkspace();
-
-    $query = $this->connection->select('path_alias', 'base_table_2');
-    $wa_join = $query->leftJoin('workspace_association', NULL, "%alias.target_entity_type_id = 'path_alias' AND %alias.target_entity_id = base_table_2.id AND %alias.workspace = :active_workspace_id", [
-      ':active_workspace_id' => $active_workspace->id(),
-    ]);
-    $query->innerJoin('path_alias_revision', 'base_table', "%alias.revision_id = COALESCE($wa_join.target_entity_revision_id, base_table_2.revision_id)");
-
-    return $query;
   }
 
 }

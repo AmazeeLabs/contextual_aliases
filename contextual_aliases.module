@@ -94,3 +94,17 @@ function contextual_aliases_path_alias_create($pathAlias) {
     }
   }
 }
+
+/**
+ * Implements hook_ENTITY_TYPE_create().
+ *
+ * @param \Drupal\path_alias\Entity\PathAlias $pathAlias
+ */
+function contextual_aliases_path_alias_presave($pathAlias) {
+  /** @var \Drupal\contextual_aliases\ContextualAliasesManager $manager */
+  $manager = \Drupal::service('path_alias.manager');
+  $context = $manager->getSourceContext($pathAlias->getPath());
+  if ($context) {
+    $pathAlias->get('context')->setValue($context);
+  }
+}

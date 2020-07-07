@@ -46,12 +46,11 @@ class Query extends BaseQuery {
     parent::prepare();
 
     if (!($this->aliasManager instanceof ContextualAliasesManager)) {
-
+      return $this;
     }
 
     $context = $this->aliasManager->getCurrentContext();
-    if ($context) {
-      $this->sqlQuery->condition('base_table.context', $context);
+    if (!empty($context)) {
       $contextCondition = $this->sqlQuery->orConditionGroup();
       $contextCondition->isNull('base_table.context');
       $contextCondition->condition('base_table.context', $context);

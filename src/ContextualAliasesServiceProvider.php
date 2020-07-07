@@ -28,7 +28,8 @@ class ContextualAliasesServiceProvider extends ServiceProviderBase {
   public function alter(ContainerBuilder $container) {
     if ($container->has('path_alias.repository')) {
       $container->getDefinition('path_alias.repository')
-        ->setClass(ContextualAliasesRepository::class);
+        ->setClass(ContextualAliasesRepository::class)
+        ->addMethodCall('setAliasManager', [new Reference('path_alias.manager')]);
 
       $container->getDefinition('path_alias.manager')
         ->setClass(ContextualAliasesManager::class)
@@ -36,17 +37,17 @@ class ContextualAliasesServiceProvider extends ServiceProviderBase {
           'tag' => 'alias_context_resolver',
           'call' => 'addContextResolver',
         ]);
-    }
 
-    if ($container->has('pathauto.alias_uniquifier')) {
-      $container->getDefinition('pathauto.alias_uniquifier')
-        ->setClass(ContextualAliasUniquifier::class);
-    }
+      if ($container->has('pathauto.alias_uniquifier')) {
+        $container->getDefinition('pathauto.alias_uniquifier')
+          ->setClass(ContextualAliasUniquifier::class);
+      }
 
-    if ($container->has('redirect.repository')) {
-      $container->getDefinition('redirect.repository')
-        ->setClass(ContextualRedirectRepository::class)
-        ->addArgument(new Reference('path.alias_storage'));
+      if ($container->has('redirect.repository')) {
+        $container->getDefinition('redirect.repository')
+          ->setClass(ContextualRedirectRepository::class)
+          ->addArgument(new Reference('path_alias.manager'));
+      }
     }
   }
 
