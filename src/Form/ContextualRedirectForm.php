@@ -20,12 +20,12 @@ class ContextualRedirectForm extends RedirectForm {
       $path = isset($parsed_url['path']) ? $parsed_url['path'] : NULL;
       $query = isset($parsed_url['query']) ? $parsed_url['query'] : NULL;
 
-      /** @var \Drupal\contextual_aliases\ContextualAliasesContextManager $aliasManager */
-      $aliasManager = \Drupal::service('path_alias.manager');
+      /** @var \Drupal\contextual_aliases\ContextualAliasesContextManager $contextManager */
+      $contextManager = \Drupal::service('contextual_aliases.context_manager');
 
       $context = $form_state->getValue(['context', 0])['value'];
       if (!UrlHelper::isExternal($redirect['uri'])) {
-        $context = $aliasManager->getSourceContext($redirect['uri']);
+        $context = $contextManager->getSourceContext($redirect['uri']);
       }
 
       $hash = Redirect::generateHash($path, $query + ['_context' => $context], $form_state->getValue('language')[0]['value']);

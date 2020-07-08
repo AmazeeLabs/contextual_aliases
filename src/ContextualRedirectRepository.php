@@ -6,7 +6,6 @@ use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\EntityManagerInterface;
 use Drupal\Core\Language\Language;
-use Drupal\Core\Path\AliasManager;
 use Drupal\redirect\RedirectRepository;
 
 class ContextualRedirectRepository extends RedirectRepository {
@@ -14,39 +13,36 @@ class ContextualRedirectRepository extends RedirectRepository {
   /**
    * The alias storage.
    *
-   * @var \Drupal\Core\Path\AliasManager
+   * @var \Drupal\contextual_aliases\ContextualAliasesContextManager
    */
-  protected $aliasManager;
+  protected $contextManager;
 
   public function __construct(
     EntityManagerInterface $manager,
     Connection $connection,
     ConfigFactoryInterface $config_factory,
-    AliasManager $aliasManager
+    ContextualAliasesContextManager $context_manager
   ) {
-    $this->aliasManager = $aliasManager;
+    $this->contextManager = $context_manager;
     parent::__construct($manager, $connection, $config_factory);
   }
-
 
   public function findMatchingRedirect(
     $source_path,
     array $query = [],
     $language = Language::LANGCODE_NOT_SPECIFIED
   ) {
-    if ($this->aliasManager instanceof ContextualAliasesContextManager) {
-      $context = $this->aliasManager->getCurrentContext();
-      if ($context) {
-        return parent::findMatchingRedirect(
-          $context . '/' . $source_path,
-          $query,
-          $language
-        ) ?: parent::findMatchingRedirect(
-          $source_path,
-          $query,
-          $language
-        );
-      }
+    $context = $this->contextManager->getCurrentContext();
+    if ($context) {
+      return parent::findMatchingRedirect(
+        $context . '/' . $source_path,
+        $query,
+        $language
+      ) ?: parent::findMatchingRedirect(
+        $source_path,
+        $query,
+        $language
+      );
     }
     return parent::findMatchingRedirect(
       $source_path,

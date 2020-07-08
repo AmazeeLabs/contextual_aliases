@@ -40,7 +40,7 @@ class ContextualAliasesServiceProvider extends ServiceProviderBase {
       if ($container->has('redirect.repository')) {
         $container->getDefinition('redirect.repository')
           ->setClass(ContextualRedirectRepository::class)
-          ->addArgument(new Reference('path_alias.manager'));
+          ->addArgument(new Reference('contextual_aliases.context_manager'));
       }
     }
   }
