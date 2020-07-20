@@ -230,17 +230,25 @@ class ContextualAliasesTest extends KernelTestBase {
     $result = $this->aliasStorage->getQuery()
       ->condition('path', '/b', '=')
       ->execute();
-    $this->assertCount(0, $result);
+    $this->assertCount(2, $result);
 
     $this->resolver->getCurrentContext()->willReturn('two');
     $result = $this->aliasStorage->getQuery()
       ->condition('path', '/b', '=')
       ->execute();
-        $this->assertCount(2, $result);
+
+    $this->assertCount(2, $result);
     $entities = $this->aliasStorage->loadMultiple($result);
     $aliases = [(array_shift($entities))->getAlias(), (array_shift($entities))->getAlias()];
     $this->assertArraySubset(['/A', '/B'], $aliases);
 
+    $this->resolver->getCurrentContext()->willReturn(NULL);
+    $result = $this->aliasStorage->getQuery()
+      ->condition('alias', '/A', '=')
+      ->execute();
+    $this->assertCount(0, $result);
+
+    $this->resolver->getCurrentContext()->willReturn('two');
     $result = $this->aliasStorage->getQuery()
       ->condition('alias', '/A', '=')
       ->execute();
@@ -322,6 +330,9 @@ class ContextualAliasesTest extends KernelTestBase {
     }
   }
 
+  /**
+   * Tests the entity hooks.
+   */
   public function testPathAliasCreateHook() {
     $this->resolver->getCurrentContext()->willReturn(NULL);
     $this->resolver->resolveContext('/h')->willReturn(NULL);
@@ -339,6 +350,9 @@ class ContextualAliasesTest extends KernelTestBase {
     $this->assertEquals('context1', $alias2->get('context')->value);
   }
 
+  /**
+   * Tests the context resolution
+   */
   public function testLookupBySystemPath() {
     /** @var \Drupal\contextual_aliases\ContextualAliasesRepository $aliasRepository */
     $aliasRepository = \Drupal::service('path_alias.repository');
@@ -366,6 +380,25 @@ class ContextualAliasesTest extends KernelTestBase {
     // be $alias2.
     $alias = $aliasRepository->lookupBySystemPath('/g', 'en');
     $this->assertEquals('/G3', $alias['alias']);
+  }
+
+  /**
+   * Test the entity queries looking up aliases by the system path.
+   */
+  public function testSourceContextOverrideInQuery() {
+    $this->resolver->getCurrentContext()->willReturn(NULL);
+    $result = $this->aliasStorage->getQuery()
+      ->condition('path', '/a', '=')
+      ->execute();
+    $this->assertCount(1, $result);
+
+    $nestedQuery = $this->aliasStorage->getQuery();
+    $orConditionGroup = $nestedQuery->orConditionGroup();
+    $orConditionGroup->condition('path', '/a', '=');
+    $orConditionGroup->condition('alias', '/xyz', '=');
+    $nestedQuery->condition($orConditionGroup);
+    $nestedResult = $nestedQuery->execute();
+    $this->assertCount(1, $nestedResult);
   }
 
 }
