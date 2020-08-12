@@ -4,7 +4,7 @@ namespace Drupal\contextual_aliases;
 
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Database\Connection;
-use Drupal\Core\Entity\EntityManagerInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Language\Language;
 use Drupal\redirect\RedirectRepository;
 
@@ -18,7 +18,7 @@ class ContextualRedirectRepository extends RedirectRepository {
   protected $contextManager;
 
   public function __construct(
-    EntityManagerInterface $manager,
+    EntityTypeManagerInterface $manager,
     Connection $connection,
     ConfigFactoryInterface $config_factory,
     ContextualAliasesContextManager $context_manager

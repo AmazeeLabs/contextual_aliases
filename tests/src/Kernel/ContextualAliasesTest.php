@@ -401,4 +401,16 @@ class ContextualAliasesTest extends KernelTestBase {
     $this->assertCount(1, $nestedResult);
   }
 
+  /**
+   * Test `loadByProperty` with the path condition.
+   *
+   * This case results in a 'IN' condition that has to be treated separately
+   * when processing context conditions.
+   */
+  public function testLoadByPathProperty() {
+    $this->resolver->getCurrentContext()->willReturn('two');
+    $aliases = $this->aliasStorage->loadByProperties(['path' => '/a']);
+    $this->assertCount(1, $aliases);
+  }
+
 }

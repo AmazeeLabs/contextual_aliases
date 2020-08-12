@@ -8,6 +8,7 @@ use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\Query\ConditionInterface;
 use Drupal\Core\Entity\Query\Sql\Query as BaseQuery;
 use Drupal\Core\Render\Element;
+use function GuzzleHttp\Psr7\build_query;
 
 /**
  * Alters entity queries to use a workspace revision instead of the default one.
@@ -36,7 +37,13 @@ class Query extends BaseQuery {
    * @param ContextualAliasesContextManager $contextManager
    *   The contextual aliases manager.
    */
-  public function __construct(EntityTypeInterface $entity_type, $conjunction, Connection $connection, array $namespaces, ContextualAliasesContextManager $contextManager) {
+  public function __construct(
+    EntityTypeInterface $entity_type,
+    $conjunction,
+    Connection $connection,
+    array $namespaces,
+    ContextualAliasesContextManager $contextManager
+  ) {
     parent::__construct($entity_type, $conjunction, $connection, $namespaces);
     $this->contextManager = $contextManager;
   }
@@ -65,65 +72,78 @@ class Query extends BaseQuery {
     foreach (Element::children($conditions) as $key) {
       $condition = $conditions[$key];
       if ($condition['field'] instanceof ConditionInterface) {
+        // If we are dealing with a condition group, recurse into each
+        // condition.
         $nestedConditions = &$condition['field']->conditions();
         $this->addContextConditions($nestedConditions);
-      } elseif (is_string($condition['field'])) {
+      }
+      elseif (is_string($condition['field'])) {
         $isSourcePathCondition = $condition['field'] == 'path';
         $isAliasCondition = $condition['field'] == 'alias';
 
-        if (!$isSourcePathCondition && !$isAliasCondition) {
+        // If the current condition is not about path or alias, skip it.
+        if (!($isSourcePathCondition || $isAliasCondition)) {
           continue;
         }
 
+        if ($isSourcePathCondition) {
+          // If the query is testing for a given path, get the paths context
+          // and make it the current query context.
+          $context = $this->contextManager->getSourceContext(
+            // `loadByProperties` generates an 'IN' condition which accepts an
+            // array. We just use the first entry to derive the context, since
+            // in this case it can never be more.
+            is_array($condition['value']) ? $condition['value'][0] : $condition['value']
+          );
+          // If the filter argument does not contain context information,
+          // fall back to the current execution context.
+          if (!$context) {
+            $context = $this->contextManager->getCurrentContext();
+          }
+        }
+        else {
+          // If the query is testing for an alias, always use the current
+          // execution context.
+          $context = $this->contextManager->getCurrentContext();
+        }
+
+
         // Create an AND condition group and add add the original condition.
         $group = $this->andConditionGroup();
-        $group->condition($condition['field'], $condition['value'], $condition['operator']);
+        $group->condition(
+          $condition['field'],
+          $condition['value'],
+          $condition['operator']
+        );
 
-        if ($isSourcePathCondition) {
-          $sourceContext = $this->contextManager->getSourceContext($condition['value']);
-          if ($sourceContext) {
-            $group->condition('context', $sourceContext, '=');
-          } else {
-            $group->notExists('context');
-          }
+        if (!empty($context)) {
+          // Create a new condition group that selects the current context and
+          // aliases in the fallback (null) context.
+          $contextCondition = $this->orConditionGroup();
+          $contextCondition->notExists('context');
+          $contextCondition->condition('context', $context, '=');
+
+          $group->condition($contextCondition);
+
+          // Sort by context decending, so if both the current and the fallback
+          // context exist, the current context is preferred.
+          array_unshift(
+            $this->sort,
+            [
+              'field' => 'context',
+              'direction' => 'DESC',
+              'langcode' => NULL,
+            ]
+          );
+        }
+        else {
+          // If we are outside of a context, always make sure to use
+          // aliases that are not related to a context.
+          $group->notExists('context');
         }
 
-        if ($isAliasCondition) {
-          $context = $this->contextManager->getCurrentContext();
-
-          if (!empty($context)) {
-            $contextCondition = $this->orConditionGroup();
-            $contextCondition->notExists('context');
-            $contextCondition->condition('context', $context);
-            $group->condition($contextCondition);
-            $this->addOrderBy('context', 'DESC');
-          } else {
-            $group->notExists('context');
-            $this->addOrderBy('context', 'ASC');
-          }
-        }
-
-        // Add the condition.
         $conditions[$key]['field'] = $group;
       }
     }
   }
-
-  /**
-   * Adds a sort condition to the query, each combination only once.
-   *
-   * @param string $field
-   *   The entity field to sort on.
-   * @param $direction
-   *   ASC or DESC.
-   */
-  protected function addOrderBy($field, $direction) {
-    static $alreadyAdded = [];
-    $key = "$field.$direction";
-    if (!isset($alreadyAdded[$key])) {
-      $this->sort($field, $direction);
-      $alreadyAdded[$key] = TRUE;
-    }
-  }
-
 }
